@@ -170,10 +170,10 @@ axios.get('https://www.instagram.com/kevin0204660/', {
           }),
         })
         console.log('推文已經下載完畢😅😅😅')
-        console.log('開始下載每一篇推文的留言囉😊😊😊')
         for (const timeline of timelines) {
           const { edge_media_to_comment, shortcode } = timeline.node
           if (edge_media_to_comment.count) {
+            console.log('開始下載這一篇推文的留言囉😊😊😊; shortcode: ', shortcode)
             edge_media_to_comment.edges = await loadInstagramAPI({
               type:       'comment',
               query_hash: apiQuery.comment.query_hash,
@@ -182,10 +182,11 @@ axios.get('https://www.instagram.com/kevin0204660/', {
                 shortcode,
               }),
             })
-            console.log('開始下載每一則留言的回覆囉😊😊😊')
+            console.log('這一篇推文留言已經下載完畢😅; shortcode: ', shortcode)
             for (const comment of edge_media_to_comment.edges) {
               const { edge_threaded_comments, id: comment_id } = comment.node
               if (edge_threaded_comments.count) {
+                console.log('開始下載這一則留言的回覆囉😊😊😊; comment_id: ', comment_id)
                 edge_threaded_comments.edges = await loadInstagramAPI({
                   type:       'threadedComment',
                   query_hash: apiQuery.threadedComment.query_hash,
@@ -194,12 +195,11 @@ axios.get('https://www.instagram.com/kevin0204660/', {
                     comment_id,
                   }),
                 })
+                console.log('這一則留言的回覆已經下載完畢😅; comment_id: ', comment_id)
               }
             }
-            console.log('每一則留言的回覆已經下載完畢😅')
           }
         }
-        console.log('每一篇推文留言已經下載完畢😅')
 
         if (!fs.existsSync(writePath)) {
           console.log(`此 "${writePath}" 不存在`)
