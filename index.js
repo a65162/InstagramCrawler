@@ -87,8 +87,8 @@ const loadInstagramAPI = ({ type, query_hash, variables }) => axios.get('https:/
     case 'hashtag':
       const { edge_owner_to_timeline_media, edge_hashtag_to_media } = _.get(res, 'data.data', {})[type]
       const timelineList = edge_owner_to_timeline_media || edge_hashtag_to_media
-      console.log('推文還沒有抓完嗎？', timelineList.page_info.has_next_page)
-      console.log('拉下一頁推文需要的 token：', timelineList.page_info.end_cursor)
+      console.log('還有下一頁的貼文資料嗎？', timelineList.page_info.has_next_page)
+      console.log('下載下一頁貼文需要的 token：', timelineList.page_info.end_cursor)
       if (timelineList.page_info.has_next_page) {
         timelineList.edges.push(
           ...await loadInstagramAPI({
@@ -104,8 +104,8 @@ const loadInstagramAPI = ({ type, query_hash, variables }) => axios.get('https:/
       return timelineList.edges
     case 'comment':
       const { edge_media_to_parent_comment } = _.get(res, 'data.data', {}).shortcode_media
-      console.log('留言還沒有抓完嗎？', edge_media_to_parent_comment.page_info.has_next_page)
-      console.log('拉下一頁留言需要的 token：', edge_media_to_parent_comment.page_info.end_cursor)
+      console.log('還有下一頁的留言嗎？', edge_media_to_parent_comment.page_info.has_next_page)
+      console.log('下載下一頁留言需要的 token：', edge_media_to_parent_comment.page_info.end_cursor)
       if (edge_media_to_parent_comment.page_info.has_next_page) {
         edge_media_to_parent_comment.edges.push(
           ...await loadInstagramAPI({
@@ -121,8 +121,8 @@ const loadInstagramAPI = ({ type, query_hash, variables }) => axios.get('https:/
       return edge_media_to_parent_comment.edges
     case 'threadedComment':
       const { edge_threaded_comments } = _.get(res, 'data.data', {}).comment
-      console.log('回覆還沒有抓完嗎？', edge_threaded_comments.page_info.has_next_page)
-      console.log('拉下一頁回覆需要的 token：', edge_threaded_comments.page_info.end_cursor)
+      console.log('還有下一頁的回覆嗎？', edge_threaded_comments.page_info.has_next_page)
+      console.log('下載下一頁回覆需要的 token：', edge_threaded_comments.page_info.end_cursor)
       if (edge_threaded_comments.page_info.has_next_page) {
         edge_threaded_comments.edges.push(
           ...await loadInstagramAPI({
@@ -144,10 +144,10 @@ const loadInstagramAPI = ({ type, query_hash, variables }) => axios.get('https:/
 }).catch(err => {
   throw new Error(err)
 })
-
-// https://www.instagram.com/kevin0204660/
-// https://www.instagram.com/explore/tags/%E4%B8%8A%E7%8F%AD%E4%B8%8D%E8%A6%81%E7%9C%8B
-axios.get('https://www.instagram.com/158_0110/', {
+// Example:
+// user: https://www.instagram.com/kevin0204660/
+// hashtag: https://www.instagram.com/explore/tags/%E4%B8%8A%E7%8F%AD%E4%B8%8D%E8%A6%81%E7%9C%8B
+axios.get('https://www.instagram.com/kevin0204660/', {
   params: {
     __a: 1,
   },
@@ -159,7 +159,7 @@ axios.get('https://www.instagram.com/158_0110/', {
       case 'hashtag':
         const { id, name: tag_name, username } = data.graphql[type]
         const writePath = `${__dirname}/data/${type}`
-        console.log('開始下載所有推文囉😊😊😊')
+        console.log('開始下載所有貼文囉😊😊😊')
         const timelines = await loadInstagramAPI({
           type,
           query_hash: apiQuery[type].query_hash,
@@ -169,11 +169,11 @@ axios.get('https://www.instagram.com/158_0110/', {
             tag_name,
           }),
         })
-        console.log('推文已經下載完畢😅😅😅')
+        console.log('貼文已經下載完畢😅😅😅')
         for (const timeline of timelines) {
           const { edge_media_to_comment, shortcode } = timeline.node
           if (edge_media_to_comment.count) {
-            console.log('開始下載這一篇推文的留言囉😊😊😊; shortcode: ', shortcode)
+            console.log('開始下載這一篇貼文的留言囉😊😊😊; shortcode: ', shortcode)
             edge_media_to_comment.edges = await loadInstagramAPI({
               type:       'comment',
               query_hash: apiQuery.comment.query_hash,
@@ -182,7 +182,7 @@ axios.get('https://www.instagram.com/158_0110/', {
                 shortcode,
               }),
             })
-            console.log('這一篇推文留言已經下載完畢😅; shortcode: ', shortcode)
+            console.log('這一篇貼文留言已經下載完畢😅; shortcode: ', shortcode)
           }
 
           for (const comment of edge_media_to_comment.edges) {
