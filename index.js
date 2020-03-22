@@ -72,7 +72,7 @@ const apiQuery = {
 
 const delayRequest = timing => {
   const delay = Math.floor(Math.random() * Math.floor(timing))
-  return delay < 1000 ? delayRequest(timing) : delay
+  return delay < 3000 ? delayRequest(timing) : delay
 }
 
 const loadInstagramAPI = ({ type, query_hash, variables }) => axios.get('https://www.instagram.com/graphql/query/', {
@@ -81,7 +81,7 @@ const loadInstagramAPI = ({ type, query_hash, variables }) => axios.get('https:/
     variables,
   },
 }).then(async res => {
-  await new Promise(resolve => setTimeout(resolve, delayRequest(3000)))
+  await new Promise(resolve => setTimeout(resolve, delayRequest(5000)))
   switch (type) {
     case 'user':
     case 'hashtag':
@@ -147,7 +147,7 @@ const loadInstagramAPI = ({ type, query_hash, variables }) => axios.get('https:/
 
 // https://www.instagram.com/kevin0204660/
 // https://www.instagram.com/explore/tags/%E4%B8%8A%E7%8F%AD%E4%B8%8D%E8%A6%81%E7%9C%8B
-axios.get('https://www.instagram.com/kevin0204660/', {
+axios.get('https://www.instagram.com/158_0110/', {
   params: {
     __a: 1,
   },
@@ -183,20 +183,21 @@ axios.get('https://www.instagram.com/kevin0204660/', {
               }),
             })
             console.log('這一篇推文留言已經下載完畢😅; shortcode: ', shortcode)
-            for (const comment of edge_media_to_comment.edges) {
-              const { edge_threaded_comments, id: comment_id } = comment.node
-              if (edge_threaded_comments.count) {
-                console.log('開始下載這一則留言的回覆囉😊😊😊; comment_id: ', comment_id)
-                edge_threaded_comments.edges = await loadInstagramAPI({
-                  type:       'threadedComment',
-                  query_hash: apiQuery.threadedComment.query_hash,
-                  variables:  JSON.stringify({
-                    ...apiQuery.threadedComment.variables,
-                    comment_id,
-                  }),
-                })
-                console.log('這一則留言的回覆已經下載完畢😅; comment_id: ', comment_id)
-              }
+          }
+
+          for (const comment of edge_media_to_comment.edges) {
+            const { edge_threaded_comments, id: comment_id } = comment.node
+            if (edge_threaded_comments.count) {
+              console.log('開始下載這一則留言的回覆囉😊😊😊; comment_id: ', comment_id)
+              edge_threaded_comments.edges = await loadInstagramAPI({
+                type:       'threadedComment',
+                query_hash: apiQuery.threadedComment.query_hash,
+                variables:  JSON.stringify({
+                  ...apiQuery.threadedComment.variables,
+                  comment_id,
+                }),
+              })
+              console.log('這一則留言的回覆已經下載完畢😅; comment_id: ', comment_id)
             }
           }
         }
