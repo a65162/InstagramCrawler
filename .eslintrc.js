@@ -45,6 +45,8 @@ module.exports = {
         'edge_media_to_parent_comment',
         'page_info',
         'comment_id',
+        'edge_media_to_comment',
+        'edge_threaded_comments'
       ]
     }],
     'import/no-unresolved': [2, {

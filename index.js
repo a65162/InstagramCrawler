@@ -1,16 +1,39 @@
+const fs = require('fs')
+const path = require('path')
 const _ = require('lodash')
 const axios = require('axios')
-const Crawler = require('crawler')
-const moment = require('moment')
 
 const apiQuery = {
-  // ProfilePage: https://www.instagram.com/${username}
-  ProfilePage: {
+  user: {
     query_hash: 'e769aa130647d2354c40ea6a439bfc08',
     variables:  {
       id:    '', // Instagram 的 user id || required
-      first: 12, // 每次要拉幾筆資料 || required
-      after: '', // 前一次拉 api 的 page_info.end_cursor 要填入在這 || required
+      first: 50, // 每次要拉幾筆資料 || required
+      after: undefined, // 前一次拉 api 的 page_info.end_cursor 要填入在這 || required
+    },
+  },
+  hashtag: {
+    query_hash: '7dabc71d3e758b1ec19ffb85639e427b',
+    variables:  {
+      tag_name: '', // tag name 的名稱 || required
+      first:    50, // 每次要拉幾筆資料 || required
+      after:    undefined, // 前一次拉 api 的 page_info.end_cursor 要填入在這 || required
+    },
+  },
+  comment: {
+    query_hash: 'bc3296d1ce80a24b1b6e40b1e72903f5',
+    variables:  {
+      shortcode: '', // 推文 shortcode
+      first:     50, // 每次要拉幾筆資料 || required
+      after:     undefined, // 前一次拉 api 的 page_info.end_cursor 要填入在這 || required
+    },
+  },
+  threadedComment: {
+    query_hash: '1ee91c32fc020d44158a3192eda98247',
+    variables:  {
+      comment_id: '', // 留言的 id
+      first:      50, // 每次要拉幾筆資料 || required
+      after:      undefined, // 前一次拉 api 的 page_info.end_cursor 要填入在這 || required
     },
   },
   // FeedPage、ExploreLandingPage 需要登入才可以使用
@@ -35,189 +58,162 @@ const apiQuery = {
   //   },
   // },
   // PostPage: https://www.instagram.com/p/${shortcode}
-  PostPage: {
-    query_hash: '77fa889ea175f55eea62d9285abc769d',
-    variables:  {
-      shortcode:             '',
-      child_comment_count:   3,
-      fetch_comment_count:   40,
-      parent_comment_count:  24,
-      has_threaded_comments: true,
-    },
-  },
-  // TagPage: https://www.instagram.com/explore/tags/${name}
-  TagPage: {
-    query_hash: '7dabc71d3e758b1ec19ffb85639e427b',
-    variables:  {
-      tag_name: '', // tag name 的名稱 || required
-      first:    12, // 每次要拉幾筆資料 || required
-      after:    '', // 前一次拉 api 的 page_info.end_cursor 要填入在這 || required
-    },
-  },
-  // Comment: 訪問 PostPage 的推文可拉裡面的留言～
-  // Comment: {
-  //   query_hash: 'bc3296d1ce80a24b1b6e40b1e72903f5',
+  // PostPage: {
+  //   query_hash: '77fa889ea175f55eea62d9285abc769d',
   //   variables:  {
-  //     shortcode: '', // 推文 shortcode
-  //     first:     12, // 每次要拉幾筆資料 || required
-  //     after:     '', // 前一次拉 api 的 page_info.end_cursor 要填入在這 || required
-  //   },
-  // },
-  // ThreadComment: Comment 的回覆
-  // 暫時不弄～
-  // ThreadComment: {
-  //   query_hash: '',
-  //   variables:  {
-
+  //     shortcode:             '',
+  //     child_comment_count:   3,
+  //     fetch_comment_count:   40,
+  //     parent_comment_count:  24,
+  //     has_threaded_comments: true,
   //   },
   // },
 }
 
-const dumpTimeline = data => {
-  data.edges.forEach(edge => {
-    console.log('使用者名稱: ', _.get(edge, 'node.owner.username', null))
-    console.log('Instagram ID: ', _.get(edge, 'node.owner.id', 0))
-    console.log('推文代碼: ', _.get(edge, 'node.shortcode', null))
-    console.log('圖片連結: ', _.get(edge, 'node.display_url', null))
-    console.log('內容: ', _.get(edge, 'node.edge_media_to_caption.edges[0].node.text', null))
-    console.log('留言數: ', _.get(edge, 'node.edge_media_to_comment.count', 0))
-    // console.log('留言: ', _.get(edge, 'node.edge_media_to_comment.edges', null))
-    console.log('發布時間: ', moment(_.get(edge, 'node.taken_at_timestamp', 0) * 1000).format('YYYY-MM-DD'))
-    console.log('愛心數: ', _.get(edge, 'node.edge_liked_by.count', 0) || _.get(edge, 'node.edge_media_preview_like.count', 0))
-    console.log('-------------------------------------------------------')
-    console.log('-------------------------------------------------------')
-    // console.log(edge.node)
-    console.log('-------------------------------------------------------')
-    console.log('-------------------------------------------------------')
-  })
+const delayRequest = timing => {
+  const delay = Math.floor(Math.random() * Math.floor(timing))
+  return delay < 1000 ? delayRequest(timing) : delay
 }
-
-// const dumpComment = data => {
-//   console.log('推文代碼: ', _.get(data, 'shortcode', null))
-//   data.edges.forEach(edge => {
-//     console.log('留言內容: ', _.get(edge, 'node.text', null))
-//     console.log('留言時間: ', moment(_.get(edge, 'node.created_at', 0) * 1000).format('YYYY-MM-DD'))
-//     console.log('留言者 Instagram ID: ', _.get(edge, 'node.owner.id', 0))
-//     console.log('留言者名稱: ', _.get(edge, 'node.owner.username', null))
-//     console.log('留言者頭像: ', _.get(edge, 'node.owner.profile_pic_url', null))
-//     console.log('留言愛心數: ', _.get(edge, 'node.edge_liked_by.count', 0))
-//     console.log('-------------------------------------------------------')
-//     console.log('-------------------------------------------------------')
-//   })
-// }
 
 const loadInstagramAPI = ({ type, query_hash, variables }) => axios.get('https://www.instagram.com/graphql/query/', {
-  params: { query_hash, variables },
+  params: {
+    query_hash,
+    variables,
+  },
 }).then(async res => {
-  await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * Math.floor(10))))
+  await new Promise(resolve => setTimeout(resolve, delayRequest(3000)))
   switch (type) {
-    case 'ProfilePage':
-    case 'TagPage':
-      const data = _.get(res, 'data.data.user.edge_owner_to_timeline_media', null) || _.get(res, 'data.data.hashtag.edge_hashtag_to_media', null)
-      dumpTimeline(data)
-      if (data.page_info.has_next_page) {
-        await loadInstagramAPI({
-          type,
-          query_hash,
-          variables: JSON.stringify({
-            ...JSON.parse(variables),
-            after: data.page_info.end_cursor,
+    case 'user':
+    case 'hashtag':
+      const { edge_owner_to_timeline_media, edge_hashtag_to_media } = _.get(res, 'data.data', {})[type]
+      const timelineList = edge_owner_to_timeline_media || edge_hashtag_to_media
+      console.log('推文還沒有抓完嗎？', timelineList.page_info.has_next_page)
+      console.log('拉下一頁推文需要的 token：', timelineList.page_info.end_cursor)
+      if (timelineList.page_info.has_next_page) {
+        timelineList.edges.push(
+          ...await loadInstagramAPI({
+            type,
+            query_hash,
+            variables: JSON.stringify({
+              ...JSON.parse(variables),
+              after: timelineList.page_info.end_cursor,
+            }),
           }),
-        })
+        )
       }
-      break
-    // case 'Comment':
-    //   const comment = _.get(res, 'data.data.shortcode_media.edge_media_to_parent_comment', null)
-    //   dumpComment({
-    //     ...comment,
-    //     shortcode: JSON.parse(variables).shortcode,
-    //   })
-    //   if (comment.page_info.has_next_page) {
-    //     await loadInstagramAPI({
-    //       type,
-    //       query_hash,
-    //       variables: JSON.stringify({
-    //         ...JSON.parse(variables),
-    //         after: comment.page_info.end_cursor,
-    //       }),
-    //     })
-    //   }
-    //   break
-    default:
-      break
+      return timelineList.edges
+    case 'comment':
+      const { edge_media_to_parent_comment } = _.get(res, 'data.data', {}).shortcode_media
+      console.log('留言還沒有抓完嗎？', edge_media_to_parent_comment.page_info.has_next_page)
+      console.log('拉下一頁留言需要的 token：', edge_media_to_parent_comment.page_info.end_cursor)
+      if (edge_media_to_parent_comment.page_info.has_next_page) {
+        edge_media_to_parent_comment.edges.push(
+          ...await loadInstagramAPI({
+            type,
+            query_hash,
+            variables: JSON.stringify({
+              ...JSON.parse(variables),
+              after: edge_media_to_parent_comment.page_info.end_cursor,
+            }),
+          }),
+        )
+      }
+      return edge_media_to_parent_comment.edges
+    case 'threadedComment':
+      const { edge_threaded_comments } = _.get(res, 'data.data', {}).comment
+      console.log('回覆還沒有抓完嗎？', edge_threaded_comments.page_info.has_next_page)
+      console.log('拉下一頁回覆需要的 token：', edge_threaded_comments.page_info.end_cursor)
+      if (edge_threaded_comments.page_info.has_next_page) {
+        edge_threaded_comments.edges.push(
+          ...await loadInstagramAPI({
+            type,
+            query_hash,
+            variables: JSON.stringify({
+              ...JSON.parse(variables),
+              after: edge_threaded_comments.page_info.end_cursor,
+            }),
+          }),
+        )
+      }
+      return edge_threaded_comments.edges
+  }
+  return {
+    error:   true,
+    message: 'no data found',
   }
 }).catch(err => {
   throw new Error(err)
 })
 
-new Crawler({
-  callback (error, res, done) {
-    if (error) throw new Error(error)
-
-    const { $ } = res
-    if (!$('body').html().includes('window._sharedData')) {
-      console.log('page not found')
-    } else {
-      $('script').each((index, scirpt) => {
-        if ($(scirpt).html().match(/^window._sharedData = /)) {
-          console.log('window._sharedData get found')
-          const initData = JSON.parse($(scirpt).html().replace('window._sharedData = ', '').replace(/;$/, '')).entry_data
-          Object.keys(initData).forEach(type => {
-            console.log('data type:', type)
-            switch (type) {
-              case 'ProfilePage':
-                const { id, edge_owner_to_timeline_media } = initData[type][0].graphql.user
-                dumpTimeline(edge_owner_to_timeline_media)
-                loadInstagramAPI({
-                  type,
-                  query_hash: apiQuery[type].query_hash,
-                  variables:  JSON.stringify({
-                    ...apiQuery[type].variables,
-                    id,
-                    after: edge_owner_to_timeline_media.page_info.end_cursor,
-                  }),
-                })
-                break
-              case 'TagPage':
-                const { edge_hashtag_to_top_posts, edge_hashtag_to_media, name } = initData[type][0].graphql.hashtag
-                dumpTimeline(edge_hashtag_to_top_posts)
-                dumpTimeline(edge_hashtag_to_media)
-                loadInstagramAPI({
-                  type,
-                  query_hash: apiQuery[type].query_hash,
-                  variables:  JSON.stringify({
-                    ...apiQuery[type].variables,
-                    tag_name: name,
-                    after:    edge_hashtag_to_media.page_info.end_cursor,
-                  }),
-                })
-                break
-              // case 'PostPage':
-              //   const { edge_media_to_parent_comment, shortcode } = initData[type][0].graphql.shortcode_media
-              //   dumpComment({
-              //     ...edge_media_to_parent_comment,
-              //     shortcode,
-              //   })
-              //   loadInstagramAPI({
-              //     type:       'Comment',
-              //     query_hash: apiQuery.Comment.query_hash,
-              //     variables:  JSON.stringify({
-              //       shortcode,
-              //       first: 12,
-              //       after: edge_media_to_parent_comment.page_info.end_cursor,
-              //     }),
-              //   })
-              //   break
-              default:
-                break
-            }
-          })
-        }
-      })
-    }
-    console.log('crawler is finish.')
-    done()
+// https://www.instagram.com/kevin0204660/
+// https://www.instagram.com/explore/tags/%E4%B8%8A%E7%8F%AD%E4%B8%8D%E8%A6%81%E7%9C%8B
+axios.get('https://www.instagram.com/kevin0204660/', {
+  params: {
+    __a: 1,
   },
+}).then(async res => {
+  const { data } = res
+  for (const type of Object.keys(data.graphql)) {
+    switch (type) {
+      case 'user':
+      case 'hashtag':
+        const { id, name: tag_name, username } = data.graphql[type]
+        const writePath = `${__dirname}/data/${type}`
+        console.log('開始下載所有推文囉😊😊😊')
+        const timelines = await loadInstagramAPI({
+          type,
+          query_hash: apiQuery[type].query_hash,
+          variables:  JSON.stringify({
+            ...apiQuery[type].variables,
+            id,
+            tag_name,
+          }),
+        })
+        console.log('推文已經下載完畢😅😅😅')
+        console.log('開始下載每一篇推文的留言囉😊😊😊')
+        for (const timeline of timelines) {
+          const { edge_media_to_comment, shortcode } = timeline.node
+          if (edge_media_to_comment.count) {
+            edge_media_to_comment.edges = await loadInstagramAPI({
+              type:       'comment',
+              query_hash: apiQuery.comment.query_hash,
+              variables:  JSON.stringify({
+                ...apiQuery.comment.variables,
+                shortcode,
+              }),
+            })
+            console.log('開始下載每一則留言的回覆囉😊😊😊')
+            for (const comment of edge_media_to_comment.edges) {
+              const { edge_threaded_comments, id: comment_id } = comment.node
+              if (edge_threaded_comments.count) {
+                edge_threaded_comments.edges = await loadInstagramAPI({
+                  type:       'threadedComment',
+                  query_hash: apiQuery.threadedComment.query_hash,
+                  variables:  JSON.stringify({
+                    ...apiQuery.threadedComment.variables,
+                    comment_id,
+                  }),
+                })
+              }
+            }
+            console.log('每一則留言的回覆已經下載完畢😅')
+          }
+        }
+        console.log('每一篇推文留言已經下載完畢😅')
+
+        if (!fs.existsSync(writePath)) {
+          console.log(`此 "${writePath}" 不存在`)
+          console.log(`建立不存在的資料`)
+          await fs.mkdirSync(writePath)
+          console.log(`"${writePath}" 建立完畢`)
+        }
+        console.log(`將 "${username || tag_name}.json" 寫入到 "${writePath}" 的資料夾內`)
+        await fs.writeFileSync(path.join(writePath, `${username || tag_name}.json`), JSON.stringify({
+          edges: timelines,
+        }))
+        console.log(`"${username || tag_name}.json" 寫入完畢`)
+        break
+    }
+  }
+  // console.log(data)
 })
-  // .queue('https://www.instagram.com/explore/tags/%E4%B8%8A%E7%8F%AD%E4%B8%8D%E8%A6%81%E7%9C%8B')
-  .queue('https://www.instagram.com/kevin0204660/')
