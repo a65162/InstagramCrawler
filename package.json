@@ -16,9 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.19.2",
-    "crawler": "^1.2.1",
-    "lodash": "^4.17.15",
-    "moment": "^2.24.0"
+    "lodash": "^4.17.15"
   },
   "devDependencies": {
     "eslint": "^6.8.0",

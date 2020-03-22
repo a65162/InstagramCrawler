@@ -43,6 +43,8 @@ module.exports = {
         'edge_hashtag_to_media',
         'edge_hashtag_to_top_posts',
         'edge_media_to_parent_comment',
+        'page_info',
+        'comment_id',
       ]
     }],
     'import/no-unresolved': [2, {
