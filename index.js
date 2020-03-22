@@ -81,8 +81,12 @@ const dumpTimeline = data => {
     console.log('圖片連結: ', _.get(edge, 'node.display_url', null))
     console.log('內容: ', _.get(edge, 'node.edge_media_to_caption.edges[0].node.text', null))
     console.log('留言數: ', _.get(edge, 'node.edge_media_to_comment.count', 0))
+    // console.log('留言: ', _.get(edge, 'node.edge_media_to_comment.edges', null))
     console.log('發布時間: ', moment(_.get(edge, 'node.taken_at_timestamp', 0) * 1000).format('YYYY-MM-DD'))
     console.log('愛心數: ', _.get(edge, 'node.edge_liked_by.count', 0) || _.get(edge, 'node.edge_media_preview_like.count', 0))
+    console.log('-------------------------------------------------------')
+    console.log('-------------------------------------------------------')
+    // console.log(edge.node)
     console.log('-------------------------------------------------------')
     console.log('-------------------------------------------------------')
   })
@@ -105,7 +109,7 @@ const dumpTimeline = data => {
 const loadInstagramAPI = ({ type, query_hash, variables }) => axios.get('https://www.instagram.com/graphql/query/', {
   params: { query_hash, variables },
 }).then(async res => {
-  await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * Math.floor(3))))
+  await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * Math.floor(10))))
   switch (type) {
     case 'ProfilePage':
     case 'TagPage':
@@ -215,6 +219,5 @@ new Crawler({
     done()
   },
 })
-  // .queue('https://www.instagram.com/explore/tags/redcircle%E8%88%8C%E5%8F%A3%E9%A4%90%E9%85%92%E6%B2%99%E9%BE%8D')
-  .queue('https://www.instagram.com/misa72600/')
-  // .queue('https://www.instagram.com/p/B8tNI9sJqJp')
+  // .queue('https://www.instagram.com/explore/tags/%E4%B8%8A%E7%8F%AD%E4%B8%8D%E8%A6%81%E7%9C%8B')
+  .queue('https://www.instagram.com/kevin0204660/')
