@@ -185,19 +185,21 @@ axios.get('https://www.instagram.com/kevin0204660/', {
             console.log('這一篇貼文留言已經下載完畢😅; shortcode: ', shortcode)
           }
 
-          for (const comment of edge_media_to_comment.edges) {
-            const { edge_threaded_comments, id: comment_id } = comment.node
-            if (edge_threaded_comments.count && edge_threaded_comments.page_info.has_next_page) {
-              console.log('開始下載這一則留言的回覆囉😊😊😊; comment_id: ', comment_id)
-              edge_threaded_comments.edges = await loadInstagramAPI({
-                type:       'threadedComment',
-                query_hash: apiQuery.threadedComment.query_hash,
-                variables:  JSON.stringify({
-                  ...apiQuery.threadedComment.variables,
-                  comment_id,
-                }),
-              })
-              console.log('這一則留言的回覆已經下載完畢😅; comment_id: ', comment_id)
+          if (edge_media_to_comment.edges) {
+            for (const comment of edge_media_to_comment.edges) {
+              const { edge_threaded_comments, id: comment_id } = comment.node
+              if (edge_threaded_comments.count && edge_threaded_comments.page_info.has_next_page) {
+                console.log('開始下載這一則留言的回覆囉😊😊😊; comment_id: ', comment_id)
+                edge_threaded_comments.edges = await loadInstagramAPI({
+                  type:       'threadedComment',
+                  query_hash: apiQuery.threadedComment.query_hash,
+                  variables:  JSON.stringify({
+                    ...apiQuery.threadedComment.variables,
+                    comment_id,
+                  }),
+                })
+                console.log('這一則留言的回覆已經下載完畢😅; comment_id: ', comment_id)
+              }
             }
           }
         }
