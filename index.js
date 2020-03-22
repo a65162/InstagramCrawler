@@ -187,7 +187,7 @@ axios.get('https://www.instagram.com/kevin0204660/', {
 
           for (const comment of edge_media_to_comment.edges) {
             const { edge_threaded_comments, id: comment_id } = comment.node
-            if (edge_threaded_comments.count) {
+            if (edge_threaded_comments.count && edge_threaded_comments.page_info.has_next_page) {
               console.log('開始下載這一則留言的回覆囉😊😊😊; comment_id: ', comment_id)
               edge_threaded_comments.edges = await loadInstagramAPI({
                 type:       'threadedComment',
